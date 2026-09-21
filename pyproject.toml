@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "groundedsql"
+version = "0.1.0"
+description = "ReAct SQL agent with grounding/hallucination checks, evaluated against BIRD benchmark"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # LLM client — OpenRouter-compatible via base_url override
+    "openai>=1.40.0,<2.0",
+    # Config
+    "pydantic-settings>=2.0,<3.0",
+    "python-dotenv>=1.0",
+    # Observability (optional — agent degrades silently if keys absent)
+    "langfuse>=3.0,<4.0",
+    # CLI
+    "click>=8.0,<9.0",
+    "rich>=13.0,<15.0",
+    # Eval harness
+    "requests>=2.31,<3.0",
+    "tqdm>=4.0,<5.0",
+]
+
+[project.scripts]
+groundedsql = "groundedsql.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath = ["src"]

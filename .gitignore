@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# uv
+uv.lock
+
+# Environment / secrets
+.env
+
+# BIRD data (downloaded at runtime — ~1-2GB)
+data/
+
+# Eval results (raw run outputs — gitignored to avoid large binary diffs)
+eval/results/
+
+# Private planning docs — contain internal project references, never push
+PLAN.md
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# pytest / coverage
+.pytest_cache/
+htmlcov/
+.coverage
