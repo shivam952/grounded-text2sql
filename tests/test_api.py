@@ -1,6 +1,7 @@
 """Tests for FastAPI demo endpoints in groundedsql.api."""
 from __future__ import annotations
 
+import json
 from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
@@ -128,3 +129,38 @@ def test_daily_budget_circuit_breaker(client, monkeypatch):
         r3 = client.post("/ask", json={"question": "Q3", "db": "superhero"})
         assert r3.status_code == 503
         assert "Daily request cap" in r3.json()["detail"]
+
+
+def test_ask_stream_success(client):
+    mock_trace = ReActTrace(
+        question="How many superheroes are there?",
+        answer="There are 734 superheroes.",
+        sql_used="SELECT COUNT(*) FROM superhero;",
+        confidence=0.95,
+        iterations_used=2,
+        total_tool_calls=2,
+        grounding_interventions=0,
+        grounding=GroundingResult(passed=True),
+    )
+
+    def mock_answer(question, on_step=None):
+        if on_step:
+            on_step(mock_trace, "Inspecting tables")
+            on_step(mock_trace, "Counting rows")
+        return mock_trace
+
+    with patch("groundedsql.api.ReActSqlAgent.answer", side_effect=mock_answer):
+        res = client.post("/ask/stream", json={"question": "How many superheroes are there?", "db": "superhero"})
+        assert res.status_code == 200
+        assert "text/event-stream" in res.headers["content-type"]
+        events = [line for line in res.text.split("\n\n") if line.startswith("data: ")]
+        assert len(events) >= 3
+        # First 2 are step events
+        step1 = json.loads(events[0][6:])
+        assert step1["type"] == "step"
+        assert step1["text"] == "Inspecting tables"
+        # Last is final event
+        final = json.loads(events[-1][6:])
+        assert final["type"] == "final"
+        assert final["answer"] == "There are 734 superheroes."
+

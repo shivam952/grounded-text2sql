@@ -209,7 +209,7 @@ class ReActSqlAgent:
     def answer(
         self,
         question: str,
-        on_step: Callable[[ReActTrace], None] | None = None,
+        on_step: Callable[[ReActTrace, str], None] | None = None,
     ) -> ReActTrace:
         """Run the agent loop and return a fully populated ReActTrace."""
         ctx = schema_context(self.db_path)
@@ -377,6 +377,8 @@ class ReActSqlAgent:
                                 metadata={"flagged": grounding.flagged_claims, "iteration": iteration},
                             ):
                                 pass
+                            if on_step:
+                                on_step(result, "Answer didn't check out against the data — re-examining")
                             submitted = False
                             continue
                         # ── Accept ─────────────────────────────────────────────
@@ -402,7 +404,7 @@ class ReActSqlAgent:
                             self.tracer.update(span_obs, output={"answer": draft_answer[:120]})
 
                         if on_step:
-                            on_step(result)
+                            on_step(result, step_annotation or "Finalizing answer")
                         submitted = True
                         continue
 
@@ -453,7 +455,7 @@ class ReActSqlAgent:
                             "content": tool_output,
                         })
                         if on_step:
-                            on_step(result)
+                            on_step(result, step_annotation or "Running a query")
                         continue
 
                     # Unknown tool
@@ -474,7 +476,7 @@ class ReActSqlAgent:
                     "The agent could not find a complete answer within the iteration limit."
                 )
                 if on_step:
-                    on_step(result)
+                    on_step(result, "Reached the iteration limit — returning best available answer")
 
             self.tracer.update(root_obs, output={
                 "answer": result.answer[:200],

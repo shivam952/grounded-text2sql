@@ -76,7 +76,7 @@ def ask(question: str, db: Path, model: str | None, no_trace: bool, json_out: bo
     trace: ReActTrace = None  # type: ignore[assignment]
 
     with Live(console=console, refresh_per_second=4) as live:
-        def on_step(t: ReActTrace) -> None:
+        def on_step(t: ReActTrace, step_text: str) -> None:
             live.update(_render_trace(t))
 
         start = time.perf_counter()
