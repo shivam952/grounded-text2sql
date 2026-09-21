@@ -278,6 +278,7 @@ _HTML = f"""<!DOCTYPE html>
   button:disabled {{ opacity: .5; cursor: default; }}
   #result {{ margin-top: 1.5rem; display: none; }}
   .answer {{ font-size: 1.05rem; line-height: 1.6; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }}
+  .sql-label {{ font-size: .75rem; color: var(--sub); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .35rem; }}
   .sql {{ background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: .8rem; font-family: monospace; font-size: .85rem; white-space: pre-wrap; word-break: break-all; margin-bottom: 1rem; }}
   .meta {{ display: flex; flex-wrap: wrap; gap: .5rem; }}
   .pill {{ background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: .25rem .75rem; font-size: .8rem; color: var(--sub); }}
@@ -370,13 +371,14 @@ async function ask() {{
           const gi = evt.grounding_interventions;
           out.innerHTML = `
             <div class="answer">${{escHtml(evt.answer)}}</div>
+            <div class="sql-label">Query used</div>
             <div class="sql">${{escHtml(evt.sql_used)}}</div>
             <div class="meta">
               <span class="pill">${{evt.iterations}} iter</span>
               <span class="pill">${{evt.elapsed_s}}s</span>
               <span class="pill">${{Math.round(evt.confidence * 100)}}% confidence</span>
-              <span class="pill ${{gp ? 'pass' : 'fail'}}">${{gp ? '✓' : '✗'}} grounding</span>
-              ${{gi > 0 ? `<span class="pill">${{gi}} intervention${{gi > 1 ? 's' : ''}}</span>` : ''}}
+              <span class="pill ${{gp ? 'pass' : 'fail'}}" title="${{gp ? 'Every number in this answer was found in the query results.' : 'This answer still contains a number that could not be verified against the query results, shown as-is.'}}">${{gp ? '✓ grounding verified' : '✗ grounding failed'}}</span>
+              ${{gi > 0 ? `<span class="pill" title="The agent's first attempt was rejected and it retried before landing on this answer.">${{gi}} self-correction${{gi > 1 ? 's' : ''}}</span>` : ''}}
             </div>`;
           out.style.display = 'block';
         }}

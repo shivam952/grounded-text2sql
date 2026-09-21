@@ -64,6 +64,22 @@ This means the agent works on **any** SQLite database dropped in — not just on
 
 ---
 
+## Datasets
+
+All databases used in this project come from [BIRD](https://bird-bench.github.io/) (BIG-bench for Large-scale Database Grounded Text-to-SQL Evaluation), the standard cross-domain benchmark for text-to-SQL systems. Nothing here is hand-crafted or cherry-picked for the agent, these are the same public databases used to compare against published BIRD leaderboard numbers.
+
+**Used for the formal eval** (`eval/runner.py`, see results below):
+- `student_club` — a university student club's own records: members, majors, events, budgets, income, expenses. Despite the name, this is data for *one* club, not a directory of multiple clubs, a distinction that matters for how questions can legitimately be phrased against it.
+- `debit_card_specializing` — a financial dataset with heavy multi-table joins, date manipulation, and aggregation across transactions, customers, and gas stations. The harder of the two domains, reflected in its lower execution accuracy and much higher grounding-intervention rate (see the consistency-vs-correctness section below).
+
+**Bundled with the live demo** (`src/groundedsql/demo_data/`, see `DB_ALLOWLIST` in `api.py`):
+- `student_club` — same database as above, reused so the public demo can showcase real multi-table join behavior (members ↔ majors) without needing a separate download step.
+- `superhero` — comic book superhero data: powers, attributes, and publishers, chosen as a second, unrelated domain so the demo isn't a one-trick showcase of a single schema.
+
+Both demo databases are small enough to commit directly to the repo (a few MB combined) and are read entirely through the same dynamic schema introspection described above, no hand-written table descriptions for either one. The full BIRD mini-dev set (50+ databases) is *not* bundled into the deploy image, only these two, kept deliberately small per the deploy spec.
+
+---
+
 ## Quick start
 
 ```bash
