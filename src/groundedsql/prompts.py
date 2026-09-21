@@ -51,7 +51,12 @@ RULES:
 - Use LIKE with % wildcards for partial text matches.
 - For aggregations, prefer GROUP BY + ORDER BY over nested subqueries where possible.
 - If no data can be found after reasonable probing, say so explicitly.
-  Never fabricate or estimate values not returned by a query.\
+  Never fabricate or estimate values not returned by a query.
+- If your answer will state a percentage, ratio, average, difference, or any
+  other derived value, compute it in SQL (e.g. CAST(x AS REAL) / y * 100) and
+  read the result from the returned rows. Do not compute it mentally and write
+  it into the answer — only numbers that appear in query results can be
+  verified as grounded.\
 """
 
 
