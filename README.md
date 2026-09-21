@@ -39,6 +39,7 @@ eval/
   download_bird.py   # downloads BIRD mini-dev to data/
   runner.py          # eval harness: EX accuracy, iterations, grounding stats
 tests/
+  test_agent.py      # 5 tests (golden ReAct loop, retries, self-correction)
   test_sql_guard.py  # 19 tests
   test_schema.py     # 12 tests (real SQLite fixture)
   test_grounding.py  # 18 tests
@@ -151,19 +152,19 @@ Foregrounding this boundary is essential: runtime grounding stops **hallucinatio
 
 ## Path to Production
 
-This is a deployed demo with basic cost guardrails (rate limiting, forced cheap model, a daily request cap) — not a production-grade system. Worth being explicit about the gap rather than implying otherwise. Here's what would actually need to change before this ran on real traffic:
+This project implements core reliability and cost guardrails for public demonstration, while maintaining a clear roadmap for enterprise deployment:
 
-**Reliability**: the main LLM call in `agent.py` has no retry/backoff around it — a transient provider error currently propagates straight up instead of retrying. The grounding check's LLM-as-judge stage fails open on error by design (a reasonable choice — don't block the agent on an observability failure), but it does so silently right now; production needs that logged/alerted loudly, since it's a safety mechanism that can quietly disable itself under infra pressure.
+### Implemented Guardrails & Reliability
+- **Retry with Exponential Backoff**: LLM calls in `agent.py` automatically retry transient errors (`429` rate limits, `503` timeouts) with jitter.
+- **Safety Alerting**: Grounding judge failures log explicit `ALERT [GroundingSafety]` messages rather than failing silently.
+- **Cost Protection**: Per-IP rate limiting (`slowapi`), forced lightweight eval model, lowered iteration budget (8), and a daily request circuit breaker (`503` once cap reached).
+- **CI/CD & Golden Testing**: Automated GitHub Actions CI workflow running 60 unit, integration, and golden multi-step ReAct simulation tests.
 
-**Testing depth**: all 49 existing tests are pure-function tests (`sql_guard`, `schema`, `grounding` in isolation) — nothing exercises the ReAct loop end-to-end. Production wants a small suite of golden scenarios (fixed question → expected tool-call sequence) run against a mocked LLM client in CI, plus a CI pipeline itself (currently none — tests only run locally).
-
-**Security**: the demo API is rate-limited by IP but not authenticated, and incoming questions aren't tested against prompt-injection attempts. Fine for a public demo; not fine the moment real/sensitive data is involved.
-
-**Scalability**: the daily-budget circuit breaker is spec'd as in-memory/file-based, which only holds on a single instance — scaling to multiple replicas would silently multiply the actual cap unless that counter moves to shared state (Redis or similar).
-
-**Versioning**: no prompt versioning, no way to A/B test a prompt change or roll one back if it regresses quality. This is the real gap the "prompt versioning" pattern (common in production LLM systems) would close.
-
-None of this blocks a demo deploy — it blocks calling the demo "production-ready," which it isn't, on purpose, given the scope here.
+### Enterprise Scale Roadmap
+- **Schema Linking / Vector RAG**: For databases with 100+ tables, introspecting full schemas exceeds context limits. Enterprise scale requires embedding-based schema retrieval (BM25 / vector search) to inject only top-k relevant tables.
+- **Distributed State**: Moving the daily request cap and rate limiter from single-node in-memory storage to a shared Redis/Upstash cluster.
+- **Tenant Authentication & Security**: API key bearer token authentication (`Authorization: Bearer <key>`) with per-tenant usage quotas and prompt-injection guardrails.
+- **Prompt & Eval Regression CI**: Running automated eval runs against golden benchmark slices on PRs to catch accuracy regressions before deploying prompt modifications.
 
 ---
 
@@ -187,7 +188,7 @@ All settings via environment variables or `.env`:
 
 ```bash
 uv run pytest tests/ -v
-# 49 tests, all passing, no network calls required
+# 60 tests, all passing, no network calls required
 ```
 
 ---

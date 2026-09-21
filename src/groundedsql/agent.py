@@ -25,7 +25,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+import random
 import re
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
@@ -41,6 +43,37 @@ from groundedsql.prompts import SYSTEM_PROMPT_TEMPLATE
 from groundedsql.schema import schema_context
 
 logger = logging.getLogger(__name__)
+
+
+def _call_llm_with_retry(
+    client: OpenAI,
+    max_retries: int = 3,
+    initial_delay: float = 1.0,
+    **kwargs: Any,
+) -> Any:
+    """Call chat.completions.create with exponential backoff and jitter."""
+    delay = initial_delay
+    last_exc: Exception | None = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            return client.chat.completions.create(**kwargs)
+        except Exception as exc:
+            last_exc = exc
+            if attempt == max_retries:
+                logger.error("LLM call failed after %d attempts: %s", max_retries, exc)
+                raise
+            jitter = random.uniform(0.1, 0.5)
+            logger.warning(
+                "LLM call failed (attempt %d/%d): %s. Retrying in %.2fs...",
+                attempt,
+                max_retries,
+                exc,
+                delay + jitter,
+            )
+            time.sleep(delay + jitter)
+            delay *= 2
+    if last_exc:
+        raise last_exc
 
 # ---------------------------------------------------------------------------
 # Tool definitions (OpenAI function-calling schema)
@@ -227,7 +260,7 @@ class ReActSqlAgent:
                     input_payload=messages[-3:],  # last few msgs for token efficiency
                     metadata={"iteration": iteration},
                 ) as gen_obs:
-                    response = self.client.chat.completions.create(**req)
+                    response = _call_llm_with_retry(self.client, **req)
 
                     usage = response.usage
                     if usage:
@@ -262,7 +295,7 @@ class ReActSqlAgent:
                     }
                     if not _is_reasoning_model(self.model):
                         forced_req["temperature"] = 0
-                    forced_resp = self.client.chat.completions.create(**forced_req)
+                    forced_resp = _call_llm_with_retry(self.client, **forced_req)
                     forced_msg = forced_resp.choices[0].message
                     if forced_msg.tool_calls:
                         tc = forced_msg.tool_calls[0]

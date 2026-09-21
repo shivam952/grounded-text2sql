@@ -126,7 +126,11 @@ def _llm_verify_claim(
         answer = (response.choices[0].message.content or "").strip().upper()
         return answer.startswith("YES")
     except Exception as exc:
-        logger.warning("LLM grounding check failed (falling back to pass): %s", exc)
+        logger.error(
+            "ALERT [GroundingSafety]: LLM grounding judge failed — falling back to fail-open (pass): %s",
+            exc,
+            exc_info=True,
+        )
         return True  # fail open — don't block agent on observability error
 
 
