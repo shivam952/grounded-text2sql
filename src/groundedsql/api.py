@@ -305,7 +305,7 @@ _HTML = f"""<!DOCTYPE html>
     {_DB_OPTIONS}
   </select>
   <label for="question">Question</label>
-  <textarea id="question" placeholder="e.g. How many members does the Anime club have?"></textarea>
+  <textarea id="question" placeholder=""></textarea>
   <button id="btn" onclick="ask()">Ask</button>
   <div id="thinking"><div class="label">Agent thinking</div><div id="thinkingSteps"></div></div>
   <div id="result"></div>
@@ -393,6 +393,65 @@ async function ask() {{
 function escHtml(s) {{
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }}
+// Typed placeholder animation — cycles through questions known to work well,
+// per selected database. Stops as soon as the user types anything.
+const EXAMPLE_QUESTIONS = {{
+  student_club: [
+    "What is the most common major among the members?",
+    "How many total members are there?",
+    "What is the total budget across all events?"
+  ],
+  superhero: [
+    "How many superheroes are there in total?",
+    "What is the most common eye colour among superheroes?",
+    "Which publisher has the most superheroes?"
+  ]
+}};
+
+let _placeholderTimer = null;
+
+function startPlaceholderAnimation() {{
+  clearTimeout(_placeholderTimer);
+  const textarea = document.getElementById('question');
+  const db = document.getElementById('db').value;
+  const examples = EXAMPLE_QUESTIONS[db] || [];
+  if (!examples.length) return;
+
+  let exampleIdx = 0, charIdx = 0, deleting = false;
+
+  function tick() {{
+    if (textarea.value) return;  // user started typing — stop overwriting
+    const full = examples[exampleIdx];
+    if (!deleting) {{
+      charIdx++;
+      textarea.placeholder = full.slice(0, charIdx);
+      if (charIdx === full.length) {{
+        deleting = true;
+        _placeholderTimer = setTimeout(tick, 1700);  // pause on full question
+        return;
+      }}
+      _placeholderTimer = setTimeout(tick, 35);
+    }} else {{
+      charIdx--;
+      textarea.placeholder = full.slice(0, charIdx);
+      if (charIdx === 0) {{
+        deleting = false;
+        exampleIdx = (exampleIdx + 1) % examples.length;
+        _placeholderTimer = setTimeout(tick, 300);
+        return;
+      }}
+      _placeholderTimer = setTimeout(tick, 18);
+    }}
+  }}
+  tick();
+}}
+
+document.getElementById('db').addEventListener('change', startPlaceholderAnimation);
+document.getElementById('question').addEventListener('input', function() {{
+  if (!this.value) startPlaceholderAnimation();
+}});
+startPlaceholderAnimation();
+
 document.getElementById('question').addEventListener('keydown', e => {{
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) ask();
 }});
