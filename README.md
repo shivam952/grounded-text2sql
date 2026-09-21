@@ -138,6 +138,24 @@ Foregrounding this boundary is essential: runtime grounding stops **hallucinatio
 
 ---
 
+## Path to Production
+
+This is a deployed demo with basic cost guardrails (rate limiting, forced cheap model, a daily request cap) — not a production-grade system. Worth being explicit about the gap rather than implying otherwise. Here's what would actually need to change before this ran on real traffic:
+
+**Reliability**: the main LLM call in `agent.py` has no retry/backoff around it — a transient provider error currently propagates straight up instead of retrying. The grounding check's LLM-as-judge stage fails open on error by design (a reasonable choice — don't block the agent on an observability failure), but it does so silently right now; production needs that logged/alerted loudly, since it's a safety mechanism that can quietly disable itself under infra pressure.
+
+**Testing depth**: all 49 existing tests are pure-function tests (`sql_guard`, `schema`, `grounding` in isolation) — nothing exercises the ReAct loop end-to-end. Production wants a small suite of golden scenarios (fixed question → expected tool-call sequence) run against a mocked LLM client in CI, plus a CI pipeline itself (currently none — tests only run locally).
+
+**Security**: the demo API is rate-limited by IP but not authenticated, and incoming questions aren't tested against prompt-injection attempts. Fine for a public demo; not fine the moment real/sensitive data is involved.
+
+**Scalability**: the daily-budget circuit breaker is spec'd as in-memory/file-based, which only holds on a single instance — scaling to multiple replicas would silently multiply the actual cap unless that counter moves to shared state (Redis or similar).
+
+**Versioning**: no prompt versioning, no way to A/B test a prompt change or roll one back if it regresses quality. This is the real gap the "prompt versioning" pattern (common in production LLM systems) would close.
+
+None of this blocks a demo deploy — it blocks calling the demo "production-ready," which it isn't, on purpose, given the scope here.
+
+---
+
 ## Configuration
 
 All settings via environment variables or `.env`:

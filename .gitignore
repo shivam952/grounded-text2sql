@@ -28,6 +28,7 @@ eval/results/
 
 # Private planning docs — contain internal project references, never push
 PLAN.md
+DEPLOY.md
 
 # macOS
 .DS_Store

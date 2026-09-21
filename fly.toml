@@ -1,0 +1,29 @@
+app = "grounded-text2sql"
+primary_region = "fra"
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[env]
+  # Non-sensitive demo tuning — override secrets via: fly secrets set ...
+  DEMO_MAX_ITERATIONS = "8"
+  DAILY_REQUEST_CAP = "100"
+  RATE_LIMIT = "5/minute"
+  # DEMO_MODEL and OPENROUTER_API_KEY must be set via fly secrets set
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
