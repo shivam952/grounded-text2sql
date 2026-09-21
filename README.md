@@ -4,6 +4,8 @@ A production-grade ReAct SQL agent with **hallucination/grounding detection** an
 
 Built to demonstrate that text-to-SQL agents need more than just good SQL generation — they need *grounding verification* to be trustworthy in production.
 
+**[Try the Live Demo](https://grounded-text2sql.fly.dev/)** · **[GitHub Repository](https://github.com/shivam952/grounded-text2sql)**
+
 ---
 
 ## What this is
@@ -31,7 +33,8 @@ groundedsql/
   grounding.py       # hallucination check: numeric extraction + optional LLM-as-judge
   agent.py           # ReAct loop (chat.completions / OpenRouter-compatible)
   observability.py   # Langfuse Tracer wrapper (optional; no-op if keys absent)
-  cli.py             # `groundedsql ask` + `groundedsql eval` commands
+  api.py             # FastAPI demo server + web UI + rate limiting + daily budget guard
+  cli.py             # `groundedsql ask`, `eval`, and `serve` commands
 eval/
   download_bird.py   # downloads BIRD mini-dev to data/
   runner.py          # eval harness: EX accuracy, iterations, grounding stats
@@ -39,6 +42,7 @@ tests/
   test_sql_guard.py  # 19 tests
   test_schema.py     # 12 tests (real SQLite fixture)
   test_grounding.py  # 18 tests
+  test_api.py        # 6 tests (endpoints, rate limits, daily budget cap)
 ```
 
 ### Security: two-layer defence-in-depth
@@ -102,6 +106,13 @@ groundedsql eval \
   --db-dir data/bird_mini_dev/databases \
   --questions data/bird_mini_dev/mini_dev_sqlite.json \
   --n 50
+```
+
+### Launch the local demo server & UI
+
+```bash
+groundedsql serve --port 8080
+# Open http://localhost:8080 in your browser
 ```
 
 ---

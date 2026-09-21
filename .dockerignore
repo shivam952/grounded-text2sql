@@ -1,0 +1,16 @@
+# Generated from .gitignore
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+.env.*
+!.env.example
+data/
+eval/results/
+*.sqlite
+!src/groundedsql/demo_data/*.sqlite
+PLAN.md
+DEPLOY.md
+.DS_Store
+.git/

@@ -140,5 +140,16 @@ def eval(db_dir: Path, questions: Path, n: int, model: str | None, out: str | No
     run_eval(db_dir=db_dir, questions_path=questions, n=n, model=model, out_path=Path(out) if out else None)
 
 
+@main.command()
+@click.option("--host", default="0.0.0.0", show_default=True, help="Host to bind to.")
+@click.option("--port", default=8080, show_default=True, help="Port to bind to.")
+@click.option("--reload", is_flag=True, help="Enable auto-reload for development.")
+def serve(host: str, port: int, reload: bool) -> None:
+    """Run the FastAPI demo server."""
+    import uvicorn
+    console.print(f"[bold blue]Starting GroundedSQL API server on http://{host}:{port}[/bold blue]")
+    uvicorn.run("groundedsql.api:app", host=host, port=port, reload=reload)
+
+
 if __name__ == "__main__":
     main()
